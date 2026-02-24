@@ -1,3 +1,3 @@
 # PeerLink : A Peer to Peer File Distribution System
-<h1>Uses FastApi as backend , ASP.NET for Frontend</h1>
+<p>Uses FastApi as backend , ASP.NET for Frontend</p>
 <b>This is still a WIP</b>
