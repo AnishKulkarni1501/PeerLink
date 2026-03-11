@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, File
-from tracker import add_file, get_peers, list_files
+from tracker import add_file, get_peers, list_files,get_metadata
 from chunker import hash_file, split_file
 import os
 
@@ -21,8 +21,11 @@ async def share_file(peer_id: str, file: UploadFile = File(...)):
         f.write(await file.read())
 
     file_hash = hash_file(file_path)
-    split_file(file_path, os.path.join(CHUNKS_DIR, file_hash))
-    add_file(peer_id, file_hash)
+    chunks = split_file(file_path, os.path.join(CHUNKS_DIR, file_hash))
+
+    total_chunks = len(chunks)
+
+    add_file(peer_id, file_hash, file.filename, total_chunks)
 
     return {"file_hash": file_hash}
 
@@ -33,3 +36,7 @@ def files():
 @app.get("/peers/{file_hash}")
 def peers(file_hash: str):
     return {"peers": get_peers(file_hash)}
+
+@app.get("/metadata/{file_hash}")
+def metadata(file_hash: str):
+    return get_metadata(file_hash)
