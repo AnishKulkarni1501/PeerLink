@@ -1,21 +1,33 @@
-file_peers = {}   
-peer_files = {}   
+import os
+import hashlib
 
-def register_peer(peer_id: str):
-    if peer_id not in peer_files:
-        peer_files[peer_id] = set()
+CHUNK_SIZE = 512 * 1024  # 512KB
 
-def add_file(peer_id: str, file_hash: str):
-    register_peer(peer_id)
+def hash_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
-    peer_files[peer_id].add(file_hash)
-    if file_hash not in file_peers:
-        file_peers[file_hash] = set()
-    file_peers[file_hash].add(peer_id)
+def split_file(path, out_dir):
+    os.makedirs(out_dir, exist_ok=True)
+    chunks = []
+    with open(path, "rb") as f:
+        i = 0
+        while True:
+            data = f.read(CHUNK_SIZE)
+            if not data:
+                break
+            chunk_path = os.path.join(out_dir, f"chunk_{i}")
+            with open(chunk_path, "wb") as cf:
+                cf.write(data)
+            chunks.append(chunk_path)
+            i += 1
+    return chunks
 
-def get_peers(file_hash: str):
-    return list(file_peers.get(file_hash, []))
-
-def list_files():
-    return list(file_peers.keys())
-
+def merge_chunks(chunks, out_path):
+    with open(out_path, "wb") as out:
+        for c in chunks:
+            with open(c, "rb") as f:
+                out.write(f.read())
