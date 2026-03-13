@@ -1,41 +1,47 @@
-from fastapi import FastAPI, UploadFile, File
-from tracker import add_file, get_peers, list_files,get_metadata
-from chunker import hash_file, split_file
-import os
+from fastapi import FastAPI
+from tracker import (
+    register_peer,
+    add_file,
+    get_peers,
+    get_metadata,
+    list_files,
+    list_peers
+)
+
+import uuid
 
 app = FastAPI()
 
-SHARED_DIR = "storage/shared"
-CHUNKS_DIR = "storage/chunks"
-os.makedirs(SHARED_DIR, exist_ok=True)
-os.makedirs(CHUNKS_DIR, exist_ok=True)
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-@app.post("/share")
-async def share_file(peer_id: str, file: UploadFile = File(...)):
-    file_path = os.path.join(SHARED_DIR, file.filename)
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
 
-    file_hash = hash_file(file_path)
-    chunks = split_file(file_path, os.path.join(CHUNKS_DIR, file_hash))
+@app.post("/join")
+def join(ip: str, port: int):
 
-    total_chunks = len(chunks)
+    peer_id = str(uuid.uuid4())
 
-    add_file(peer_id, file_hash, file.filename, total_chunks)
+    register_peer(peer_id, ip, port)
 
-    return {"file_hash": file_hash}
+    return {"peer_id": peer_id}
+
+
+@app.get("/peerlist")
+def peerlist():
+    return {"peers": list_peers()}
+
 
 @app.get("/files")
 def files():
     return {"files": list_files()}
 
+
 @app.get("/peers/{file_hash}")
 def peers(file_hash: str):
     return {"peers": get_peers(file_hash)}
+
 
 @app.get("/metadata/{file_hash}")
 def metadata(file_hash: str):
