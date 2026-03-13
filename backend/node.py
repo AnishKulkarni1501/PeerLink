@@ -6,21 +6,38 @@ import threading
 from peer_server import start_peer_server
 from chunker import merge_chunks
 
-TRACKER = "http://127.0.0.1:8000"
+import socket
+import requests
 
+TRACKER = "http://192.168.1.40:8000"   # tracker machine
 PEER_PORT = 9000
+
+
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    try:
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+
+    return ip
 
 
 def join_network():
 
+    ip = get_local_ip()
+
     r = requests.post(
         f"{TRACKER}/join",
-        params={"ip": "127.0.0.1", "port": PEER_PORT}
+        params={
+            "ip": ip,
+            "port": PEER_PORT
+        }
     )
 
     return r.json()["peer_id"]
-
-
 def download_file(file_hash):
 
     meta = requests.get(
@@ -46,20 +63,15 @@ def download_file(file_hash):
         data = b""
 
         while True:
-
             part = s.recv(4096)
-
             if not part:
                 break
-
             data += part
 
         s.close()
 
         with open(f"downloads/{file_hash}/chunk_{i}", "wb") as f:
-
             f.write(data)
-
         print("Downloaded chunk", i)
 
     chunks = [
@@ -68,7 +80,6 @@ def download_file(file_hash):
     ]
 
     merge_chunks(chunks, f"downloads/{filename}")
-
     print("File reconstructed:", filename)
 
 
