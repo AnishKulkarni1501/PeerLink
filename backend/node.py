@@ -220,7 +220,8 @@ def main():
         
         elif cmd == "seed" and len(parts) == 2:
             
-            path = parts[1]
+            path = parts[1].strip().strip('"').strip("'") #For full system paths.
+            path = os.path.normpath(path)
             if not os.path.isfile(path):
                 print(f"[seed] File not found: {path}")
             else:
