@@ -214,7 +214,6 @@ def main():
 
         parts = line.split(maxsplit=1)
         cmd   = parts[0].lower()
-
         if cmd == "quit":
             break
         
@@ -240,9 +239,11 @@ def main():
             fhash = parts[1]
             print("[download] Fetching chunk hashes from tracker metadata…")
             try:
-                download_file(fhash, chunk_hashes=[])
+                meta = requests.get(f"{TRACKER}/metadata/{fhash}", timeout=5).json()
+                chunk_hashes = meta.get("chunk_hashes", [])
+                download_file(fhash, chunk_hashes)
             except Exception as e:
-                print(f"[download] Error: either the file doesn't exist or you have the incorrect hash")
+                print(f"[download] Error: {e}")
 
         else:
             print("Unknown command. Use:  download <hash>  |  seed <filepath>  |  quit")

@@ -1,6 +1,7 @@
 import sqlite3
 import datetime
-
+import os
+import hashlib
 DB_PATH = "tracker.db"
 
 
@@ -88,15 +89,27 @@ def add_file(peer_id: str, file_hash: str, filename: str, total_chunks: int):
 def get_metadata(file_hash: str) -> dict:
     with get_db() as db:
         row = db.execute(
-            """
-            SELECT filename, total_chunks FROM files 
-            WHERE file_hash = ? 
-            AND peer_id IN (SELECT peer_id FROM peers)
-            LIMIT 1
-            """,
+            "SELECT filename, total_chunks FROM files WHERE file_hash = ? LIMIT 1",
             (file_hash,),
         ).fetchone()
-    return dict(row) if row else {}
+    if not row:
+        return {}
+    
+    chunk_hashes = []
+    chunk_dir = os.path.join("storage/chunks", file_hash)
+    if os.path.exists(chunk_dir):
+        for i in range(row["total_chunks"]):
+            chunk_path = os.path.join(chunk_dir, f"chunk_{i}")
+            if os.path.exists(chunk_path):
+                with open(chunk_path, "rb") as f:
+                    chunk_hash = hashlib.sha256(f.read()).hexdigest()
+                    chunk_hashes.append(chunk_hash)
+    
+    return {
+        "filename": row["filename"],
+        "total_chunks": row["total_chunks"],
+        "chunk_hashes": chunk_hashes
+    }
 
 
 def get_peers(file_hash: str) -> list[dict]:
