@@ -88,7 +88,12 @@ def add_file(peer_id: str, file_hash: str, filename: str, total_chunks: int):
 def get_metadata(file_hash: str) -> dict:
     with get_db() as db:
         row = db.execute(
-            "SELECT filename, total_chunks FROM files WHERE file_hash = ? LIMIT 1",
+            """
+            SELECT filename, total_chunks FROM files 
+            WHERE file_hash = ? 
+            AND peer_id IN (SELECT peer_id FROM peers)
+            LIMIT 1
+            """,
             (file_hash,),
         ).fetchone()
     return dict(row) if row else {}
